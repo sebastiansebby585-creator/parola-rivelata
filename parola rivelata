@@ -1,0 +1,269 @@
+
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parola Rivelata</title>
+</head>
+<body class="bg-white">
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
+
+{
+  "name": "parola-rivelata",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@stripe/stripe-js": "^1.63.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "tailwindcss": "^3.4.10",
+    "postcss": "^8.4.41",
+    "autoprefixer": "^10.4.20",
+    "@vitejs/plugin-react": "^4.3.0"
+  }
+}
+export default { plugins: { tailwindcss: {}, autoprefixer: {} } }
+
+# Parola Rivelata — GitHub Pages
+
+Vite + React + Tailwind. Deploy via GitHub Actions.
+import React, { useMemo, useState, useEffect } from "react";
+
+const STRONGS = {
+  H7225:{num:"H7225", lingua:"Ebraico", lemma:"רֵאשִׁית", translit:"reshìt", definizione_it:"inizio, principio, prima parte, capo", definizione_en:"beginning, first, chief; the starting point or first in order", esempi:["Gen 1:1"]},
+  H1254:{num:"H1254", lingua:"Ebraico", lemma:"בָּרָא", translit:"barà", definizione_it:"creare (specialmente per atto divino), produrre dal nulla", definizione_en:"to create, shape, form (especially of divine act)", esempi:["Gen 1:1"]},
+  H430:{num:"H430", lingua:"Ebraico", lemma:"אֱלֹהִים", translit:"Elohìm", definizione_it:"Dio, divinità; plurale intensivo riferito al Dio d'Israele", definizione_en:"God, gods; intensive plural used for Israel's God", esempi:["Gen 1:1"]},
+  H8064:{num:"H8064", lingua:"Ebraico", lemma:"שָׁמַיִם", translit:"shamayìm", definizione_it:"cieli, regioni celesti", definizione_en:"heavens, sky", esempi:["Gen 1:1"]},
+  H776:{num:"H776", lingua:"Ebraico", lemma:"אֶרֶץ", translit:"àretz", definizione_it:"terra, paese, suolo", definizione_en:"earth, land, ground", esempi:["Gen 1:1"]},
+  G746:{num:"G746", lingua:"Greco", lemma:"ἀρχή", translit:"arché", definizione_it:"principio, inizio; autorità, dominio", definizione_en:"beginning, origin; rule, authority", esempi:["Gv 1:1"]},
+  G3056:{num:"G3056", lingua:"Greco", lemma:"λόγος", translit:"lógos", definizione_it:"parola, discorso; ragione, principio ordinatore (teol. 'Verbo')", definizione_en:"word, speech; reason; the divine Logos", esempi:["Gv 1:1"]},
+  G2316:{num:"G2316", lingua:"Greco", lemma:"θεός", translit:"theós", definizione_it:"Dio, divinità", definizione_en:"God, deity", esempi:["Gv 1:1"]},
+  G1510:{num:"G1510", lingua:"Greco", lemma:"εἰμί", translit:"eimì", definizione_it:"essere, esistere", definizione_en:"to be, exist", esempi:["Gv 1:1"]}
+};
+
+const SAMPLE_TEXT = {
+  titolo: "Parola Rivelata",
+  traduzione: { nome: "Giovanni Diodati (1649)", licenza: "Pubblico dominio — solo per dimostrazione" },
+  libri: [
+    { id:"genesi", nome:"Genesi", capitoli:[{ num:1, versetti:[{ v:1, tokens:[
+      {t:"Nel",s:"H7225"},{t:"principio",s:"H7225"},{t:"Iddio",s:"H430"},{t:"creò",s:"H1254"},
+      {t:"i",s:"H8064"},{t:"cieli",s:"H8064"},{t:"e",s:null},{t:"la",s:"H776"},{t:"terra",s:"H776"},{t:".",s:null}
+    ]}]}]},
+    { id:"giovanni", nome:"Giovanni", capitoli:[{ num:1, versetti:[{ v:1, tokens:[
+      {t:"Nel",s:"G746"},{t:"principio",s:"G746"},{t:"era",s:"G1510"},{t:"la",s:null},{t:"Parola",s:"G3056"},{t:",",s:null},
+      {t:"e",s:null},{t:"la",s:null},{t:"Parola",s:"G3056"},{t:"era",s:"G1510"},{t:"presso",s:null},{t:"Dio",s:"G2316"},{t:",",s:null},
+      {t:"e",s:null},{t:"la",s:null},{t:"Parola",s:"G3056"},{t:"era",s:"G1510"},{t:"Dio",s:"G2316"},{t:".",s:null}
+    ]}]}]}
+  ]
+};
+
+function useLocalStorage(key, initial){
+  const [val, setVal] = useState(()=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v):initial}catch{return initial}});
+  useEffect(()=>{try{localStorage.setItem(key, JSON.stringify(val))}catch{}},[key,val]);
+  return [val,setVal];
+}
+
+function Chip({children}){return (<span className="inline-flex items-center px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-medium">{children}</span>)}
+
+function StrongCard({ code, onClose }){
+  if(!code) return null;
+  const e = STRONGS[code];
+  return (<div className="fixed right-4 bottom-4 max-w-md rounded-2xl shadow-xl border bg-white p-4">
+    <div className="flex items-center justify-between gap-2"><div><div className="text-xs uppercase tracking-wider text-gray-500">Strong</div><h3 className="font-bold text-lg">{e?.num||code} · {e?.translit} ({e?.lingua})</h3></div><button onClick={onClose} className="px-2 py-1 text-sm rounded bg-gray-100">chiudi</button></div>
+    {e ? (<>
+      <div className="mt-2 text-2xl">{e.lemma}</div>
+      <p className="mt-2 text-sm leading-relaxed"><span className="font-semibold">Significato (IT):</span> {e.definizione_it}</p>
+      <p className="mt-1 text-xs text-gray-600"><span className="font-semibold">Def. EN:</span> {e.definizione_en}</p>
+    </>) : (<p className="text-sm mt-2">Voce non trovata.</p>)}
+  </div>);
+}
+
+function Paywall({ onSubscribe, prezzo=2 }){
+  return (<div className="border rounded-2xl p-6 bg-gradient-to-br from-yellow-50 to-blue-50 text-center shadow-sm">
+    <h3 className="text-xl font-bold">Abbonati a Parola Rivelata</h3>
+    <p className="mt-2">Accesso completo alla Bibbia interattiva + Strong per soli <span className="font-semibold">€{prezzo}/mese</span>.</p>
+    <div className="mt-4 flex items-center justify-center gap-4">
+      <button onClick={onSubscribe} className="px-4 py-2 rounded-xl bg-blue-600 text-white shadow hover:opacity-90">Abbonati ora</button>
+      <a href="#come-funziona" className="text-blue-700 underline">Come funziona</a>
+    </div>
+    <p className="mt-3 text-xs text-gray-500">Demo: il pulsante simula l'abbonamento.</p>
+  </div>);
+}
+
+function EditorPag({ value, onChange }){
+  const [text,setText]=useState(value||""); useEffect(()=>setText(value||""),[value]);
+  return (<div className="space-y-2">
+    <textarea className="w-full h-40 p-3 border rounded-xl" value={text} onChange={e=>setText(e.target.value)} placeholder="Scrivi qui (markdown semplice)" />
+    <div className="flex gap-2"><button onClick={()=>onChange?.(text)} className="px-3 py-2 rounded-xl bg-emerald-600 text-white">Salva contenuto</button></div>
+  </div>);
+}
+
+function BibleReader({ data, onPickStrong, paywalled }){
+  const [bookIdx,setBookIdx]=useState(0); const [chapterIdx,setChapterIdx]=useState(0);
+  const book=data.libri[bookIdx]; const chapter=book.capitoli[chapterIdx];
+  return (<div className="space-y-4">
+    <div className="flex flex-wrap items-center gap-3">
+      <select className="border rounded-xl px-3 py-2" value={bookIdx} onChange={e=>{setBookIdx(parseInt(e.target.value)); setChapterIdx(0);}}>
+        {data.libri.map((b,i)=>(<option key={b.id} value={i}>{b.nome}</option>))}
+      </select>
+      <select className="border rounded-xl px-3 py-2" value={chapterIdx} onChange={e=>setChapterIdx(parseInt(e.target.value))}>
+        {book.capitoli.map((c,i)=>(<option key={i} value={i}>Cap. {c.num}</option>))}
+      </select>
+      <Chip>{data.traduzione.nome}</Chip>
+    </div>
+    {paywalled ? (<div className="border rounded-xl p-6 text-center text-gray-600">Alcuni capitoli sono riservati agli abbonati. Prova il primo versetto come demo 👇</div>):null}
+    <div className="space-y-5">
+      {chapter.versetti.map(v=>(<div key={v.v} className="leading-8 text-lg">
+        <span className="mr-2 text-blue-700 font-semibold">{v.v}</span>
+        {v.tokens.map((tok,idx)=>!tok.s ? <span key={idx}>{tok.t + (idx < v.tokens.length - 1 ? " " : "")}</span> :
+          <button key={idx} onClick={()=>onPickStrong?.(tok.s)} className={"underline underline-offset-4 decoration-dotted hover:bg-yellow-100 rounded px-1"} title={`Strong ${tok.s}`}>{tok.t}</button>
+        )}
+      </div>))}
+    </div>
+  </div>);
+}
+
+export default function ParolaRivelata(){
+  const [dataset,setDataset]=useLocalStorage("pr_dataset", SAMPLE_TEXT);
+  const [isSubscribed,setIsSubscribed]=useLocalStorage("pr_subscribed",false);
+  const [admin,setAdmin]=useLocalStorage("pr_admin",false);
+  const [pageContent,setPageContent]=useLocalStorage("pr_page_info","# Benvenuto in Parola Rivelata\\n\\nStudia la Bibbia (demo Diodati) con lessico Strong interattivo.");
+  const [pickedStrong,setPickedStrong]=useState(null);
+  const [search,setSearch]=useState("");
+
+  const searchResults = useMemo(()=>{
+    if(!search) return [];
+    const q = search.trim().toLowerCase();
+    return Object.values(STRONGS).filter(e => [e.num,e.lemma,e.translit,e.definizione_it,e.definizione_en].filter(Boolean).some(f=>f.toLowerCase().includes(q)));
+  }, [search]);
+
+  function exportData(){
+    const blob = new Blob([JSON.stringify(dataset,null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href=url; a.download="parola-rivelata-dati.json"; a.click(); URL.revokeObjectURL(url);
+  }
+  function importData(file){
+    const reader=new FileReader();
+    reader.onload=(e)=>{try{const json=JSON.parse(e.target.result); if(!json.libri) throw new Error("Formato non valido"); setDataset(json); alert("Dati importati");}catch(err){alert("Errore importazione: "+err.message)}};
+    reader.readAsText(file);
+  }
+  async function subscribeStripe(){ setIsSubscribed(true); alert("Abbonamento simulato attivo (demo)."); }
+
+  return (<div className="min-h-screen bg-gradient-to-b from-white to-blue-50">
+    <header className="sticky top-0 z-10 backdrop-blur supports-[backdrop-filter]:bg-white/80 border-b">
+      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-2xl bg-blue-600" /><div><h1 className="font-extrabold text-xl">Parola Rivelata</h1><div className="text-xs text-gray-600">Bibbia interattiva + Strong (demo)</div></div></div>
+        <div className="flex items-center gap-3">{isSubscribed ? <Chip>Abbonato</Chip> : <Chip>Free</Chip>}
+          <button onClick={()=>setAdmin(a=>!a)} className="text-xs px-3 py-1 rounded-full border bg-white hover:bg-gray-50">{admin ? "Modalità utente" : "Modalità admin"}</button></div>
+      </div>
+    </header>
+
+    <main className="max-w-5xl mx-auto px-4 py-6 space-y-8">
+      <section className="grid md:grid-cols-3 gap-6 items-start">
+        <div className="md:col-span-2 bg-white rounded-2xl p-6 shadow">
+          <h2 className="text-2xl font-bold">Studia la Scrittura parola per parola</h2>
+          <p className="mt-2 text-gray-700">Clicca qualsiasi parola per vedere il numero Strong, il lemma originale e il significato letterale.</p>
+          {!isSubscribed && (<div className="mt-4"><Paywall onSubscribe={subscribeStripe} /></div>)}
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow">
+          <h3 className="font-bold">Ricerca nel Strong</h3>
+          <input value={search} onChange={e=>setSearch(e.target.value)} className="w-full border rounded-xl px-3 py-2 mt-2" placeholder="Cerca per codice, lemma o significato (es. H7225, 'principio')" />
+          <div className="mt-3 max-h-48 overflow-auto space-y-2">
+            {searchResults.map(r => (<button key={r.num} onClick={()=>setPickedStrong(r.num)} className="w-full text-left p-2 rounded-lg hover:bg-gray-50 border">
+              <div className="text-sm font-semibold">{r.num} · {r.translit} <span className="text-xs text-gray-500">({r.lingua})</span></div>
+              <div className="text-xs text-gray-600">{r.lemma}</div>
+              <div className="text-xs">{r.definizione_it}</div>
+            </button>))}
+            {!search && <div className="text-xs text-gray-500">Suggerimento: prova \"H7225\" o \"λόγος\"</div>}
+          </div>
+        </div>
+      </section>
+
+      <section id="lettore" className="bg-white rounded-2xl p-6 shadow">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold">Bibbia interattiva</h2>
+          <div className="flex items-center gap-2 text-xs text-gray-500"><span>{dataset.traduzione.nome}</span><span>·</span><span>{dataset.traduzione.licenza}</span></div>
+        </div>
+        <div className="mt-4">
+          <BibleReader data={dataset} onPickStrong={setPickedStrong} paywalled={!isSubscribed} />
+        </div>
+      </section>
+
+      <section className="bg-white rounded-2xl p-6 shadow">
+        <h3 className="font-bold">Dati</h3>
+        <p className="text-sm text-gray-700 mt-1">Importa una traduzione autorizzata in JSON interlineare (con codici Strong) o esporta i tuoi dati.</p>
+        <div className="mt-3 flex flex-wrap gap-3 items-center">
+          <label className="px-4 py-2 rounded-xl border bg-gray-50 cursor-pointer">Importa dati JSON
+            <input type="file" accept="application/json" className="hidden" onChange={e=>e.target.files?.[0] && importData(e.target.files[0])} />
+          </label>
+          <button onClick={exportData} className="px-4 py-2 rounded-xl border bg-gray-50">Esporta dati</button>
+          <button onClick={()=>{localStorage.removeItem("pr_dataset"); window.location.reload();}} className="px-4 py-2 rounded-xl border bg-gray-50">Ripristina demo</button>
+        </div>
+        <details className="mt-3 text-sm"><summary className="cursor-pointer font-medium">Specifica formato JSON richiesto</summary>
+          <pre className="mt-2 p-3 bg-gray-50 rounded-lg overflow-auto text-xs">{`
+{
+  "titolo": "Parola Rivelata",
+  "traduzione": {"nome": "Nome traduzione", "licenza": "Tipo licenza"},
+  "libri": [
+    {"id": "genesi", "nome": "Genesi", "capitoli": [
+      {"num": 1, "versetti": [
+        {"v": 1, "tokens": [
+          {"t": "Nel", "s": "H7225"},
+          {"t": "principio", "s": "H7225"},
+          {"t": "Dio", "s": "H430"},
+          {"t": "creò", "s": "H1254"}
+        ]}
+      ]}
+    ]}
+  ]
+}
+`}</pre>
+        </details>
+      </section>
+    </main>
+
+    <footer className="max-w-5xl mx-auto px-4 py-10 text-sm text-gray-600">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p>© {new Date().getFullYear()} Parola Rivelata</p>
+        <div className="flex items-center gap-3">
+          <a className="underline" href="#">Termini</a>
+          <a className="underline" href="#">Privacy</a>
+          <button onClick={()=>{const ok=prompt("Inserisci chiave admin (demo: 'admin')"); if(ok==="admin"){const c=JSON.parse(localStorage.getItem("pr_admin")||"false"); localStorage.setItem("pr_admin", JSON.stringify(!c)); window.location.reload();} else alert("Chiave errata");}} className="underline">Admin</button>
+        </div>
+      </div>
+    </footer>
+
+    <StrongCard code={pickedStrong} onClose={()=>setPickedStrong(null)} />
+  </div>);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.prose h2 { @apply text-2xl font-bold mt-4; }
+.prose h3 { @apply text-xl font-semibold mt-3; }
+.prose p { @apply my-2; }
+
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import './index.css'
+import App from './App.jsx'
+ReactDOM.createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>)
+/** @type {import('tailwindcss').Config} */
+export default { content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"], theme: { extend: {} }, plugins: [] }
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+export default defineConfig({ plugins: [react()] })
